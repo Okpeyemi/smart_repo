@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { getUsers, postAuth } from "@/services/api";
+import { getUserMotif, getUsers, postAuth } from "@/services/api";
 import React, { useState } from "react";
 
 const page = () => {
@@ -28,6 +28,7 @@ const page = () => {
   const [isNotUsager, setIsNotUsager] = useState(false);
   const [checkNumber, setCheckNumber] = useState(false);
   const [userId, setUserId] = useState(0);
+  const [isEnter, setIsEnter] = useState(false);
 
   const checkTheNumber = () => {
     setLoading(true);
@@ -59,17 +60,38 @@ const page = () => {
         if (theUser.status === "visiteur") {
           setIsNotUsager(true);
         } else {
-            try {
-                const response = await postAuth(number, pin);
-                console.log("Usager authentifié avec succès :", response);
-                setNumber("");
-                setPin("");
-                setMotif(true);
-            } catch (error) {
-                setError("Une erreur est survenue lors de l'authentification de l'usager.")
-            } finally {
-                setLoading(false);
+          try {
+            const response = await postAuth(number, pin);
+            console.log("Usager authentifié avec succès :", response);
+            setNumber("");
+            setPin("");
+            // setMotif(true);
+            const secondResponse = await getUserMotif(theUser.id);
+            const userLastPresence = secondResponse[secondResponse.length - 1];
+
+            if (
+              userLastPresence.arrival_date === null &&
+              userLastPresence.departure_date === null
+            ) {
+              setMotif(true);
+            } else if (
+              userLastPresence.arrival_date !== null &&
+              userLastPresence.departure_date === null
+            ) {
+              setIsEnter(true);
+            } else if (
+              userLastPresence.arrival_date !== null &&
+              userLastPresence.departure_date !== null
+            ) {
+              setMotif(true);
             }
+          } catch (error) {
+            setError(
+              "Une erreur est survenue lors de l'authentification de l'usager."
+            );
+          } finally {
+            setLoading(false);
+          }
         }
       } else {
         setIsNotUsager(true);
@@ -89,7 +111,10 @@ const page = () => {
       <div className="flex items-center justify-center w-screen h-screen">
         <div className="flex flex-col w-[80%] h-[80%] bg-[#C7ECFF] rounded-[30px] p-5 opacity-[81%] justify-between items-center py-[72px]">
           <Logo />
-          <h1 className="text-[64px] font-bold">Entrez votre contact</h1>
+          <h1 className="text-[64px] font-bold text-center">
+            Une <span className="text-[#0077FF]">Entrée</span> ?{" "}
+          </h1>
+          <h2 className="text-[44px]">Saisissez votre Contact et PIN</h2>
           <Input
             placeholder="22901XXXXXXXX"
             value={number}
@@ -121,20 +146,36 @@ const page = () => {
         />
       )}
 
+      {isEnter && (
+        <Toast
+          title="Oh Oh !!!"
+          desription={`Vous êtes déjà entrer au SCOP.`}
+          link="/sortie"
+        />
+      )}
+
       {checkNumber && (
         <AlertDialog open={true}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Vérification du numéro ...</AlertDialogTitle>
-              <AlertDialogDescription>
+              <AlertDialogTitle className="text-[30px]">
+                Vérification du numéro ...
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-[20px]">
                 {`Est-ce que le ${number} est bien votre numéro ?`}
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={verificationIsFalse}>
+            <AlertDialogFooter className="flex w-full justify-center items-center">
+              <AlertDialogCancel
+                onClick={verificationIsFalse}
+                className="w-full bg-[#FF0000] p-7 items-center justify-center rounded-[18px] hover:bg-red-400 text-[20px] text-white hover:text-white"
+              >
                 Non
               </AlertDialogCancel>
-              <AlertDialogAction onClick={verificationIsTrue}>
+              <AlertDialogAction
+                onClick={verificationIsTrue}
+                className="w-full bg-[#0004FF] p-7 items-center justify-center rounded-[18px] hover:bg-blue-500 text-[20px]"
+              >
                 Oui
               </AlertDialogAction>
             </AlertDialogFooter>

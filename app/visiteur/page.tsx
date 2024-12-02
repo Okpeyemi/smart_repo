@@ -15,9 +15,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { getUsers } from "@/services/api";
+import { getUserMotif, getUsers, postUsers } from "@/services/api";
 import React, { useState } from "react";
 
 const page = () => {
@@ -28,6 +27,9 @@ const page = () => {
   const [isUsager, setIsUsager] = useState(false);
   const [isNew, setIsNew] = useState(false);
   const [checkNumber, setCheckNumber] = useState(false);
+  const [pin, setPin] = useState("");
+  const [userId, setUserId] = useState(0);
+  const [isEnter, setIsEnter] = useState(false);
 
   const checkTheNumber = () => {
     setLoading(true);
@@ -55,11 +57,53 @@ const page = () => {
       );
       if (theUser) {
         console.log(theUser.status);
-        if (theUser.status === "usager") {
-          setIsUsager(true);
-        } else {
-          setIsSecondPresence(true);
+        if (theUser.id !== undefined) {
+          setUserId(theUser.id);
         }
+
+        try {
+          const response = await getUserMotif(theUser.id);
+          const userLastPresence = response[response.length - 1];
+
+          const action = async () => {
+            if (theUser.status === "usager") {
+              setIsUsager(true);
+            } else {
+              const userData = {
+                nom: theUser.nom,
+                prenoms: theUser.prenoms,
+                telephone: theUser.telephone,
+                email: theUser.email,
+                age: theUser.age,
+                sexe: theUser.sexe,
+                profil: theUser.profil,
+                status: theUser.status,
+              };
+
+              const response = await postUsers(userData);
+              console.log("this is :", response);
+              setPin(response.pin);
+              setIsSecondPresence(true);
+            }
+          };
+
+          if (
+            userLastPresence.arrival_date === null &&
+            userLastPresence.departure_date === null
+          ) {
+            action();
+          } else if (
+            userLastPresence.arrival_date !== null &&
+            userLastPresence.departure_date === null
+          ) {
+            setIsEnter(true);
+          } else if (
+            userLastPresence.arrival_date !== null &&
+            userLastPresence.departure_date !== null
+          ) {
+            action();
+          }
+        } catch (error) {}
       } else {
         setIsNew(true);
       }
@@ -78,7 +122,10 @@ const page = () => {
       <div className="flex items-center justify-center w-screen h-screen">
         <div className="flex flex-col w-[80%] h-[80%] bg-[#C7ECFF] rounded-[30px] p-5 opacity-[81%] justify-between items-center py-[72px]">
           <Logo />
-          <h1 className="text-[64px] font-bold">Entrez votre contact</h1>
+          <h1 className="text-[64px] font-bold text-center">
+            Vous êtes <span className="text-[#FFA600]">Visiteur</span> ?{" "}
+          </h1>
+          <h2 className="text-[44px]">Saisissez votre Contact</h2>
           <Input
             placeholder="22901XXXXXXXX"
             value={number}
@@ -99,16 +146,16 @@ const page = () => {
         <Toast
           title="Félicitation !!!"
           desription={`Vous êtes maintenant un usager du scop. Voici votre nouveau mot de passe:`}
-          pin="E6y"
-          link="/usager"
+          pin={pin}
+          userId={userId}
         />
       )}
 
-      {isUsager && (
+      {isEnter && (
         <Toast
           title="Oh Oh !!!"
-          desription={`Vous êtes déjà un usager. Veuillez s'il vous plaît entrer au SCOP en tant que usager.`}
-          link="/usager"
+          desription={`Vous êtes déjà entrer au SCOP.`}
+          link="/sortie"
         />
       )}
 
@@ -116,16 +163,24 @@ const page = () => {
         <AlertDialog open={true}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Vérification du numéro ...</AlertDialogTitle>
-              <AlertDialogDescription>
+              <AlertDialogTitle className="text-[30px]">
+                Vérification du numéro ...
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-[20px]">
                 {`Est-ce que le ${number} est bien votre numéro ?`}
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={verificationIsFalse}>
+            <AlertDialogFooter className="flex w-full justify-center items-center">
+              <AlertDialogCancel
+                onClick={verificationIsFalse}
+                className="w-full bg-[#FF0000] p-7 items-center justify-center rounded-[18px] hover:bg-red-400 text-[20px] text-white hover:text-white"
+              >
                 Non
               </AlertDialogCancel>
-              <AlertDialogAction onClick={verificationIsTrue}>
+              <AlertDialogAction
+                onClick={verificationIsTrue}
+                className="w-full bg-[#0004FF] p-7 items-center justify-center rounded-[18px] hover:bg-blue-500 text-[20px]"
+              >
                 Oui
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -133,9 +188,7 @@ const page = () => {
         </AlertDialog>
       )}
 
-      {isNew && (
-        <NewVisitor number={number} />
-      )}
+      {isNew && <NewVisitor number={number} />}
     </div>
   );
 };

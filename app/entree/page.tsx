@@ -10,7 +10,7 @@ const page = () => {
       <div className="flex items-center justify-center w-screen h-screen">
         <div className="flex flex-col w-[80%] h-[80%] bg-[#C7ECFF] rounded-[30px] p-5 opacity-[81%] justify-between items-center py-[72px]">
           <Logo />
-          <h1 className="text-[64px] font-bold">WELCOME</h1>
+          <h2 className="text-[54px] font-bold text-center">Vous êtes ? </h2>
           <div>
             <a href="/usager">
               <Boutton className="bg-[#0077FF] cursor-pointer" text="Usager" />
